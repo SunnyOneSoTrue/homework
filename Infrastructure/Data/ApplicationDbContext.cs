@@ -5,13 +5,19 @@ using Microsoft.EntityFrameworkCore;
 namespace homework.Infrastructure.Data
 {
     /// <summary>
-    /// the entity framework implementation. Used to communicate with the database
+    /// Represents the Entity Framework Core database context for the application.
+    /// Integrates ASP.NET Core Identity for user and role management.
+    /// will store domain entities such as clients, accounts, and search history.
     /// </summary>
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public ApplicationDbContext CreateInstance()
+        public DbSet<Client> Clients { get; set; } //not implemented yet
+        public DbSet<Account> Accounts { get; set; } //not implemented yet
+        public DbSet<SearchHistory> SearchHistories { get; set; } //not implemented yet
+
+        public ApplicationDbContext (DbContextOptions<ApplicationDbContext> options): base(options)
         {
-            return new ApplicationDbContext();
+            
         }
     }
 }
