@@ -1,8 +1,8 @@
-using homework.Core.Entities;
+using Core.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace homework.Infrastructure.Data
+namespace Infrastructure.Data
 {
     /// <summary>
     /// Represents the Entity Framework Core database context for the application.
@@ -11,9 +11,10 @@ namespace homework.Infrastructure.Data
     /// </summary>
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public DbSet<Client> Clients { get; set; } //not implemented yet
-        public DbSet<Account> Accounts { get; set; } //not implemented yet
-        public DbSet<SearchHistory> SearchHistories { get; set; } //not implemented yet
+        //Todo: implement these
+        // public DbSet<Client> Clients { get; set; } 
+        // public DbSet<Account> Accounts { get; set; } 
+        // public DbSet<SearchHistory> SearchHistories { get; set; }
 
         public ApplicationDbContext (DbContextOptions<ApplicationDbContext> options): base(options)
         {
