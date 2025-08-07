@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace homework.Homework.Core.Entities
+namespace homework.Core.Entities
 {
     /// <summary>
     /// the user entity. esentially the base of whoever's trying to access the application.
