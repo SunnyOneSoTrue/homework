@@ -6,9 +6,14 @@ using System.Text;
 using Infrastructure.Data;
 using Core.Entities;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.json", optional: false, reloadOnChange: true); //I add the appsettings.json file manually since I created the file manually also.
+
 
 //initially adding the services that we will be using
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=banking.db"));
@@ -16,6 +21,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFramework
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("no JWT key"); //this gets the key that is used to stamp tokens
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey); //this turns the key into bytes so that the signing algorythm can read it 
+
 
 builder.Services.AddAuthentication(options =>
 {
@@ -36,10 +42,27 @@ builder.Services.AddAuthentication(options =>
 
 });
 
+builder.Services.Configure<SeedRolesSettings.SeedRolesSettings>(builder.Configuration.GetSection("SeedRoles"));
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(); //adds the authorisation
+builder.Services.AddControllers(); // adds the controllers that we define
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope()) //code for role seeding. Checks if role exists and creates it if it doesn't 
+{ 
+    var config = scope.ServiceProvider.GetRequiredService<IOptions<SeedRolesSettings.SeedRolesSettings>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    
+    var adminRole = config.Value.Admin ?? throw new Exception($"no admin role");
+    
+    var exists = await roleManager.RoleExistsAsync(adminRole);
+    if (!exists)
+    {
+        await roleManager.CreateAsync(new IdentityRole(adminRole));
+    }
+
+}
 
 app.UseAuthentication(); //are you one of us?
 app.UseAuthorization(); // what authority do you have?
