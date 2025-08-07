@@ -42,7 +42,8 @@ builder.Services.AddAuthentication(options =>
 
 });
 
-builder.Services.Configure<SeedRolesSettings.SeedRolesSettings>(builder.Configuration.GetSection("SeedRoles"));
+builder.Services.Configure<SeedRolesSettings.SeedRolesSettings>(builder.Configuration.GetSection("SeedRoles")); //to add seedRoles class
+builder.Services.Configure<SeedAdminSettings.SeedAdminSettings>(builder.Configuration.GetSection("SeedAdmin")); //to add the base admin seed
 
 builder.Services.AddAuthorization(); //adds the authorisation
 builder.Services.AddControllers(); // adds the controllers that we define
@@ -50,18 +51,18 @@ builder.Services.AddControllers(); // adds the controllers that we define
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope()) //code for role seeding. Checks if role exists and creates it if it doesn't 
-{ 
-    var config = scope.ServiceProvider.GetRequiredService<IOptions<SeedRolesSettings.SeedRolesSettings>>();
+{
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    
-    var adminRole = config.Value.Admin ?? throw new Exception($"no admin role");
-    
-    var exists = await roleManager.RoleExistsAsync(adminRole);
-    if (!exists)
-    {
-        await roleManager.CreateAsync(new IdentityRole(adminRole));
-    }
+    var roleSettings = app.Services.GetRequiredService<IOptions<SeedRolesSettings.SeedRolesSettings>>().Value;
 
+    foreach (var roleName in roleSettings.Roles)
+    {
+        var exists = await roleManager.RoleExistsAsync(roleName);
+        if (!exists)
+        {
+            await roleManager.CreateAsync(new IdentityRole(roleName));
+        }
+    }
 }
 
 app.UseAuthentication(); //are you one of us?

@@ -2,6 +2,7 @@ namespace SeedRolesSettings
 {
     public class SeedRolesSettings
     {
-        public string Admin { get; set; }
+        public List<string> Roles { get; set; }
     }
+
 }
