@@ -50,7 +50,7 @@ using(var scope = app.Services.CreateScope()) //code for role seeding. Checks if
 {
     var roleManager =scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(); // used to create roles if not existing
     var roleSettings = app.Services.GetRequiredService<IOptions<SeedRolesSettings.SeedRolesSettings>>().Value;
-    var userManager =scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>(); //used to assign admin to initial admin role in appsettings.json
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(); //used to assign admin to initial admin role in appsettings.json
     var adminSettings = app.Services.GetRequiredService<IOptions<SeedAdminSettings.SeedAdminSettings>>().Value;
 
     foreach (var roleName in roleSettings.Roles) //loops though an creates roles if they dont already exist
@@ -63,13 +63,19 @@ using(var scope = app.Services.CreateScope()) //code for role seeding. Checks if
     }
     
     var adminUser = await userManager.FindByEmailAsync(adminSettings.Email); //assigns admin role to initial values if it doesnt already exist
+    
     if (adminUser == null)
     {
-        adminUser = new IdentityUser{
+        adminUser = new ApplicationUser
+        {
             UserName = adminSettings.Email,
             Email = adminSettings.Email,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            FullName = "Admin",
+            RoleDisplayName = adminSettings.Role,
+            DateOfBirth = DateTime.UtcNow //rame rom yofiliyo xd
         };
+
         var result = await userManager.CreateAsync(adminUser, adminSettings.Password);
         if (result.Succeeded)
         {

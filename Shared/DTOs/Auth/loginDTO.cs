@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace homework.DTOs.Auth
+namespace homework.Shared.DTOs.Auth
 {
-    public class RegisterRequest
+    public class loginDTO
     {
         [Required]
         [EmailAddress]
@@ -10,7 +10,5 @@ namespace homework.DTOs.Auth
 
         [Required]
         public string Password { get; set; }
-
-        public string Role { get; set; } = "User"; 
     }
 }

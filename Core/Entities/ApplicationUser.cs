@@ -9,13 +9,14 @@ namespace Core.Entities
     /// </summary>
     public class ApplicationUser : IdentityUser
     {
-        private string fullName;
-        public string FullName { get => fullName; set => fullName = value; }
         
-        DateTime dateOfBirth;
-        public DateTime DateOfBirth { get => dateOfBirth; set => dateOfBirth = value; }
+        private string fullName = "";
+        public string FullName { get => fullName; set => fullName = value ?? string.Empty; } 
         
-        string roleDisplayName;
-        public string RoleDisplayName { get => roleDisplayName; set => roleDisplayName = value; }
+        DateTime dateOfBirth = DateTime.Now;
+        public DateTime DateOfBirth { get => dateOfBirth; set => dateOfBirth = value;}
+        
+        string roleDisplayName = "";
+        public string RoleDisplayName { get => roleDisplayName; set => roleDisplayName = value ?? string.Empty; }
     }
 }
