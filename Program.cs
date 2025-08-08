@@ -25,12 +25,9 @@ var keyBytes = Encoding.UTF8.GetBytes(jwtKey); //this turns the key into bytes s
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme =
-        JwtBearerDefaults.AuthenticationScheme; //"Use JWT Bearer tokens for authentication"
-    options.DefaultChallengeScheme =
-        JwtBearerDefaults.AuthenticationScheme; //"if it fails, tell the user the default way"
-}).AddJwtBearer(options =>
-{
+    options.DefaultAuthenticateScheme =JwtBearerDefaults.AuthenticationScheme; //"Use JWT Bearer tokens for authentication"
+    options.DefaultChallengeScheme =JwtBearerDefaults.AuthenticationScheme; //"if it fails, tell the user the default way"
+}).AddJwtBearer(options =>{
     options.RequireHttpsMetadata = false; // allows local dev using http
     options.SaveToken = true; //Stores the token in the current request context 
     options.TokenValidationParameters = new TokenValidationParameters {
@@ -39,7 +36,6 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = false, // doesn't check where it comes from
         ValidateAudience = false // doesn't check for whom it was intended for
     };
-
 });
 
 builder.Services.Configure<SeedRolesSettings.SeedRolesSettings>(builder.Configuration.GetSection("SeedRoles")); //to add seedRoles class
@@ -50,26 +46,26 @@ builder.Services.AddControllers(); // adds the controllers that we define
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope()) //code for role seeding. Checks if role and admin exists and creates it if it doesn't 
+using(var scope = app.Services.CreateScope()) //code for role seeding. Checks if role and admin exists and creates it if it doesn't 
 {
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(); // used to create roles if not existing
+    var roleManager =scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(); // used to create roles if not existing
     var roleSettings = app.Services.GetRequiredService<IOptions<SeedRolesSettings.SeedRolesSettings>>().Value;
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>(); //used to assign admin to initial admin role in appsettings.json
+    var userManager =scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>(); //used to assign admin to initial admin role in appsettings.json
     var adminSettings = app.Services.GetRequiredService<IOptions<SeedAdminSettings.SeedAdminSettings>>().Value;
 
-    foreach (var roleName in roleSettings.Roles)//loops though an creates roles if they dont already exist
+    foreach (var roleName in roleSettings.Roles) //loops though an creates roles if they dont already exist
     {
         var exists = await roleManager.RoleExistsAsync(roleName);
         if (!exists)
         {
-            await roleManager.CreateAsync(new IdentityRole(roleName)); 
+            await roleManager.CreateAsync(new IdentityRole(roleName));
         }
     }
-    var adminUser = await userManager.FindByEmailAsync(adminSettings.Email);//assigns admin role to initial values if it doesnt already exist
+    
+    var adminUser = await userManager.FindByEmailAsync(adminSettings.Email); //assigns admin role to initial values if it doesnt already exist
     if (adminUser == null)
     {
-        adminUser = new IdentityUser
-        {
+        adminUser = new IdentityUser{
             UserName = adminSettings.Email,
             Email = adminSettings.Email,
             EmailConfirmed = true
@@ -79,6 +75,7 @@ using (var scope = app.Services.CreateScope()) //code for role seeding. Checks i
         {
             await userManager.AddToRoleAsync(adminUser, adminSettings.Role);
         }
+    }
 }
 
 app.UseAuthentication(); //are you one of us?
