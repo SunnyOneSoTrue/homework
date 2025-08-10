@@ -1,5 +1,6 @@
 using Client;
 using Core.Entities;
+using homework.Core.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,7 +17,7 @@ namespace Infrastructure.Data
         public DbSet<Client.Client> Clients { get; set; } 
         public DbSet<Account> Accounts { get; set; } 
         public DbSet<Address> Addresses { get; set; }
-        // public DbSet<SearchHistory> SearchHistories { get; set; }
+        public DbSet<SearchHistory> SearchHistories { get; set; }
 
         public ApplicationDbContext (DbContextOptions<ApplicationDbContext> options): base(options)
         {
