@@ -33,9 +33,10 @@ namespace Infrastructure.Data
             client.Property(c => c.FirstName).HasMaxLength(60).IsRequired();
             client.Property(c => c.LastName).HasMaxLength(60).IsRequired();
             client.Property(c => c.Email).IsRequired();
-            client.Property(c => c.PersonalId).HasMaxLength(11).IsRequired(); // <- renamed
+            client.Property(c => c.PersonalId).HasMaxLength(11).IsRequired();
             client.HasIndex(c => c.Email).IsUnique();
             client.HasIndex(c => c.PersonalId).IsUnique();
+            client.Property(c => c.ProfilePhoto).IsRequired(false);
 
             var addr = modelBuilder.Entity<Address>();
             addr.HasKey(a => a.Id);
@@ -43,20 +44,14 @@ namespace Infrastructure.Data
             addr.Property(a => a.City).IsRequired();
             addr.Property(a => a.Street).IsRequired();
             addr.Property(a => a.ZipCode).IsRequired();
-            addr.HasOne(a => a.Client)
-                .WithMany(c => c.Addresses)
-                .HasForeignKey(a => a.ClientId)
-                .IsRequired()
-                .OnDelete(DeleteBehavior.Cascade);
+            addr.HasOne(a => a.Client).WithMany(c => c.Addresses).HasForeignKey(a => a.ClientId).IsRequired().OnDelete(DeleteBehavior.Cascade);
 
             var account = modelBuilder.Entity<Account>();
             account.HasKey(a => a.Id);
-            account.HasOne(a => a.Client)
-                .WithMany(c => c.Accounts)
-                .HasForeignKey(a => a.ClientId)
-                .IsRequired()
-                .OnDelete(DeleteBehavior.Cascade);
+            account.Property(a => a.AccountNumber).IsRequired(); 
+            account.HasOne(a => a.Client).WithMany(c => c.Accounts).HasForeignKey(a => a.ClientId).IsRequired().OnDelete(DeleteBehavior.Cascade);
         }
+
 
 
     }

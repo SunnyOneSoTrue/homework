@@ -19,16 +19,16 @@ public class ClientsController: ControllerBase
     public async Task<IActionResult> Create([FromBody] Client.Client client)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        
+
         _db.Clients.Add(client);
         await _db.SaveChangesAsync();
-        
+
         return CreatedAtAction(nameof(GetById), new { id = client.Id }, new { client.Id });
     }
 
     [Authorize(Roles = "Admin")]
     [HttpGet("search-suggestions")]
-    public async Task<ActionResult> GetSuggestions(int id)
+    public async Task<IActionResult> GetSuggestions()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Forbid();
@@ -37,13 +37,12 @@ public class ClientsController: ControllerBase
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.CreatedAtUtc)
             .Take(3)
-            .Select(x => x.QueryJson)
+            .Select(x => x.QueryJson!)
             .ToListAsync();
 
-        // define a small shape for suggestions
         var suggestions = jsonList
             .Select(j => JsonSerializer.Deserialize<SearchParams>(j))
-            .Where(x => x != null)
+            .Where(x => x != null)!
             .ToList();
 
         return Ok(suggestions);
@@ -51,16 +50,16 @@ public class ClientsController: ControllerBase
 
     [Authorize]
     [HttpGet("{id:int}")]
-    public async Task<Client.Client> GetById(int id)
+    public async Task<IActionResult> GetById(int id)
     {
         var client = await _db.Clients
             .AsNoTracking()
             .Include(c => c.Addresses)
             .Include(c => c.Accounts)
             .FirstOrDefaultAsync(c => c.Id == id);
-        if (client == null) return null;
-        return client; 
 
+        return client is null ? NotFound() : Ok(client);
+        
     }
 
     [Authorize(Roles = "Admin")]
@@ -68,17 +67,20 @@ public class ClientsController: ControllerBase
     public async Task<IActionResult> Update(int id, [FromBody] Client.Client client)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        
-        var fetchedClient = await _db.Clients.Include(c => c.Addresses).Include(c => c.Accounts).FirstOrDefaultAsync(c => c.Id == id);
-        if (fetchedClient == null) return NotFound();
-        
-        _db.Addresses.RemoveRange(fetchedClient.Addresses);
-        _db.Accounts.RemoveRange(fetchedClient.Accounts);
-        fetchedClient.Addresses = client.Addresses; 
-        fetchedClient.Accounts  = client.Accounts;
 
-        _db.SaveChanges();
-        return Ok("saved");
+        var fetched = await _db.Clients
+            .Include(c => c.Addresses)
+            .Include(c => c.Accounts)
+            .FirstOrDefaultAsync(c => c.Id == id);
+        if (fetched is null) return NotFound();
+
+        _db.Addresses.RemoveRange(fetched.Addresses);
+        _db.Accounts.RemoveRange(fetched.Accounts);
+        fetched.Addresses = client.Addresses;
+        fetched.Accounts  = client.Accounts;
+
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 
     [Authorize(Roles = "Admin")]
