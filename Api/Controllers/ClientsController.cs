@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using homework.Controllers.SearchParams;
 
 namespace homework.Controllers;
 
@@ -41,7 +42,7 @@ public class ClientsController: ControllerBase
             .ToListAsync();
 
         var suggestions = jsonList
-            .Select(j => JsonSerializer.Deserialize<SearchParams>(j))
+            .Select(j => JsonSerializer.Deserialize<SearchParams.SearchParams>(j))
             .Where(x => x != null)!
             .ToList();
 
@@ -94,5 +95,3 @@ public class ClientsController: ControllerBase
     }
 
 }
-
-public record SearchParams(int page, int pageSize, string? search, string? sortBy, string? sortDir);
