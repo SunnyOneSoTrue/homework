@@ -19,13 +19,18 @@ namespace homework.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _config;
-        private readonly SymmetricSecurityKey _key;
+        private SymmetricSecurityKey _key;
 
         public AuthController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager,  IConfiguration config)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _config = config;
+            GenerateKey();
+        }
+
+        private void GenerateKey()
+        {
             var rawKey = _config["Jwt:Key"] ?? throw new Exception("JWT key missing");
             _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(rawKey));
         }
