@@ -49,6 +49,19 @@ public class ClientsController: ControllerBase
         return Ok(suggestions);
     }
 
+    [Authorize(Roles = "Admin")]
+    [HttpGet("all-clients")]
+    public async Task<IActionResult> GetAllClients()
+    {
+        var clients = await _db.Clients
+            .Include(c => c.Addresses)
+            .Include(c => c.Accounts)
+            .ToListAsync();
+
+        return Ok(clients);
+    }
+
+
     [Authorize]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
@@ -60,7 +73,6 @@ public class ClientsController: ControllerBase
             .FirstOrDefaultAsync(c => c.Id == id);
 
         return client is null ? NotFound() : Ok(client);
-        
     }
 
     [Authorize(Roles = "Admin")]

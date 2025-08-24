@@ -13,7 +13,7 @@ using RegisterRequest = homework.DTOs.Auth.RegisterRequest;
 namespace homework.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] // actual url: "api/auth"
+    [Route("api/[controller]")] // actual url: "api/Auth"
     public class AuthController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
