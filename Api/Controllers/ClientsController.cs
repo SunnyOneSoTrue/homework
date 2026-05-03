@@ -1,22 +1,21 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Client;
-using Infrastructure.Data;
+using homework.Core.Entities;
+using homework.Controllers.SearchParams;
+using homework.Shared.DTOs.Database;
+using homework.Infrastructure.UnitOfWork;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using homework.Controllers.SearchParams;
-using homework.Core.Entities;
-using homework.Shared.DTOs.Database;
 
 namespace homework.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ClientsController: ControllerBase
+public class ClientsController : ControllerBase
 {
-    private readonly ApplicationDbContext _db;
-    public ClientsController(ApplicationDbContext db) => _db = db;
+    private readonly IUnitOfWork _uow;
+    public ClientsController(IUnitOfWork uow) => _uow = uow;
 
     [Authorize(Roles = "Admin")]
     [HttpPost]
@@ -33,19 +32,16 @@ public class ClientsController: ControllerBase
             ProfilePhoto = request.ProfilePhoto,
             Addresses    = request.Addresses.Select(a => new Address
             {
-                Country = a.Country,
-                City    = a.City,
-                Street  = a.Street,
-                ZipCode = a.ZipCode
+                Country = a.Country, City = a.City, Street = a.Street, ZipCode = a.ZipCode
             }).ToList(),
             Accounts = request.Accounts.Select(a => new Account
             {
                 AccountNumber = a.AccountNumber
             }).ToList()
         };
-        
-        _db.Clients.Add(client);
-        await _db.SaveChangesAsync();
+
+        await _uow.Clients.AddAsync(client);
+        await _uow.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = client.Id }, new { client.Id });
     }
@@ -57,12 +53,7 @@ public class ClientsController: ControllerBase
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Forbid();
 
-        var jsonList = await _db.SearchHistories
-            .Where(x => x.UserId == userId)
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .Take(3)
-            .Select(x => x.QueryJson!)
-            .ToListAsync();
+        var jsonList = await _uow.Clients.GetSearchHistoryJsonAsync(userId);
 
         var suggestions = jsonList
             .Select(j => JsonSerializer.Deserialize<SearchParams.SearchParams>(j))
@@ -71,7 +62,7 @@ public class ClientsController: ControllerBase
 
         return Ok(suggestions);
     }
-    
+
     [Authorize(Roles = "Admin")]
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] SearchParams.SearchParams searchParams)
@@ -79,40 +70,10 @@ public class ClientsController: ControllerBase
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Forbid();
 
-        var query = _db.Clients
-            .Include(c => c.Addresses)
-            .Include(c => c.Accounts)
-            .AsQueryable();
+        var (total, results) = await _uow.Clients.SearchAsync(searchParams);
 
-        if (!string.IsNullOrWhiteSpace(searchParams.search))
-            query = query.Where(c =>
-                c.FirstName.Contains(searchParams.search) ||
-                c.LastName.Contains(searchParams.search)  ||
-                c.Email.Contains(searchParams.search)     ||
-                c.PersonalId.Contains(searchParams.search));
-
-        query = searchParams.sortBy?.ToLower() switch
-        {
-            "firstname" => searchParams.sortDir == "desc" ? query.OrderByDescending(c => c.FirstName) : query.OrderBy(c => c.FirstName),
-            "lastname"  => searchParams.sortDir == "desc" ? query.OrderByDescending(c => c.LastName)  : query.OrderBy(c => c.LastName),
-            "email"     => searchParams.sortDir == "desc" ? query.OrderByDescending(c => c.Email)     : query.OrderBy(c => c.Email),
-            _           => query.OrderBy(c => c.Id)
-        };
-
-        var total = await query.CountAsync();
-        var results = await query
-            .AsNoTracking()
-            .Skip((searchParams.page - 1) * searchParams.pageSize)
-            .Take(searchParams.pageSize)
-            .ToListAsync();
-
-        _db.SearchHistories.Add(new SearchHistory
-        {
-            UserId       = userId,
-            QueryJson    = JsonSerializer.Serialize(searchParams),
-            CreatedAtUtc = DateTime.UtcNow
-        });
-        await _db.SaveChangesAsync();
+        await _uow.Clients.AddSearchHistoryAsync(userId, JsonSerializer.Serialize(searchParams));
+        await _uow.SaveChangesAsync();
 
         return Ok(new { total, results });
     }
@@ -121,25 +82,15 @@ public class ClientsController: ControllerBase
     [HttpGet("all-clients")]
     public async Task<IActionResult> GetAllClients()
     {
-        var clients = await _db.Clients
-            .Include(c => c.Addresses)
-            .Include(c => c.Accounts)
-            .ToListAsync();
-
+        var clients = await _uow.Clients.GetAllAsync();
         return Ok(clients);
     }
-
 
     [Authorize]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var client = await _db.Clients
-            .AsNoTracking()
-            .Include(c => c.Addresses)
-            .Include(c => c.Accounts)
-            .FirstOrDefaultAsync(c => c.Id == id);
-
+        var client = await _uow.Clients.GetByIdAsync(id);
         return client is null ? NotFound() : Ok(client);
     }
 
@@ -149,36 +100,28 @@ public class ClientsController: ControllerBase
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        var fetched = await _db.Clients
-            .Include(c => c.Addresses)
-            .Include(c => c.Accounts)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        var fetched = await _uow.Clients.GetByIdAsync(id);
         if (fetched is null) return NotFound();
 
         fetched.FirstName    = request.FirstName;
         fetched.LastName     = request.LastName;
         fetched.Email        = request.Email;
         fetched.ProfilePhoto = request.ProfilePhoto;
-        
-        _db.Addresses.RemoveRange(fetched.Addresses);
-        _db.Accounts.RemoveRange(fetched.Accounts);
-        
+
+        _uow.Clients.RemoveAddresses(fetched.Addresses);
+        _uow.Clients.RemoveAccounts(fetched.Accounts);
+
         fetched.Addresses = request.Addresses.Select(a => new Address
         {
-            Country   = a.Country,
-            City      = a.City,
-            Street    = a.Street,
-            ZipCode   = a.ZipCode,
-            ClientId  = id
-        }).ToList();
-        
-        fetched.Accounts = request.Accounts.Select(a => new Account
-        {
-            AccountNumber = a.AccountNumber,
-            ClientId      = id
+            Country = a.Country, City = a.City, Street = a.Street, ZipCode = a.ZipCode, ClientId = id
         }).ToList();
 
-        await _db.SaveChangesAsync();
+        fetched.Accounts = request.Accounts.Select(a => new Account
+        {
+            AccountNumber = a.AccountNumber, ClientId = id
+        }).ToList();
+
+        await _uow.SaveChangesAsync();
         return NoContent();
     }
 
@@ -186,10 +129,11 @@ public class ClientsController: ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var client = await _db.Clients.FirstOrDefaultAsync(c => c.Id == id);
-        _db.Remove(client);
-        await _db.SaveChangesAsync();
+        var client = await _uow.Clients.GetByIdAsync(id);
+        if (client is null) return NotFound();
+
+        _uow.Clients.Remove(client);
+        await _uow.SaveChangesAsync();
         return Ok("Client deleted");
     }
-
 }

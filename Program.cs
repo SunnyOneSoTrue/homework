@@ -5,10 +5,11 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Infrastructure.Data;
 using Core.Entities;
+using homework.Infrastructure.Repositories;
+using homework.Infrastructure.UnitOfWork;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,9 @@ builder.Services.Configure<SeedAdminSettings.SeedAdminSettings>(builder.Configur
 
 builder.Services.AddAuthorization(); //adds the authorisation
 builder.Services.AddControllers(); // adds the controllers that we define
+
+builder.Services.AddScoped<IClientRepository, ClientRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var app = builder.Build();
 
