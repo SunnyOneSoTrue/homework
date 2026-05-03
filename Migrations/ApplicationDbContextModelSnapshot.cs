@@ -191,6 +191,27 @@ namespace homework.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "admin-seed-id",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "c6e060cb-8f43-4308-9b96-aeeba6d8f513",
+                            DateOfBirth = new DateTime(1820, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Email = "admin@example.com",
+                            EmailConfirmed = true,
+                            FullName = "Admin",
+                            LockoutEnabled = false,
+                            NormalizedEmail = "ADMIN@EXAMPLE.COM",
+                            NormalizedUserName = "ADMIN@EXAMPLE.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEDGHwNIAnvayoI8kuZOgERP+AVZxk7RQdNZyXKTJVu6KMGjETx5WVo0RxxDVDCP5yA==",
+                            PhoneNumberConfirmed = false,
+                            RoleDisplayName = "Admin",
+                            SecurityStamp = "admin-security-stamp",
+                            TwoFactorEnabled = false,
+                            UserName = "admin@example.com"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -217,6 +238,20 @@ namespace homework.Migrations
                         .HasDatabaseName("RoleNameIndex");
 
                     b.ToTable("AspNetRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "1",
+                            Name = "Admin",
+                            NormalizedName = "ADMIN"
+                        },
+                        new
+                        {
+                            Id = "2",
+                            Name = "User",
+                            NormalizedName = "USER"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -300,6 +335,13 @@ namespace homework.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "admin-seed-id",
+                            RoleId = "1"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>

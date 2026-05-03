@@ -46,47 +46,8 @@ builder.Services.AddControllers(); // adds the controllers that we define
 
 var app = builder.Build();
 
-using(var scope = app.Services.CreateScope()) //code for role seeding. Checks if role and admin exists and creates it if it doesn't 
-{
-    var roleManager =scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(); // used to create roles if not existing
-    var roleSettings = app.Services.GetRequiredService<IOptions<SeedRolesSettings.SeedRolesSettings>>().Value;
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(); //used to assign admin to initial admin role in appsettings.json
-    var adminSettings = app.Services.GetRequiredService<IOptions<SeedAdminSettings.SeedAdminSettings>>().Value;
-
-    foreach (var roleName in roleSettings.Roles) //loops though an creates roles if they dont already exist
-    {
-        var exists = await roleManager.RoleExistsAsync(roleName);
-        if (!exists)
-        {
-            await roleManager.CreateAsync(new IdentityRole(roleName));
-        }
-    }
-    
-    var adminUser = await userManager.FindByEmailAsync(adminSettings.Email); //assigns admin role to initial values if it doesnt already exist
-    
-    if (adminUser == null)
-    {
-        adminUser = new ApplicationUser
-        {
-            UserName = adminSettings.Email,
-            Email = adminSettings.Email,
-            EmailConfirmed = true,
-            FullName = "Admin",
-            RoleDisplayName = adminSettings.Role,
-            DateOfBirth = DateTime.UtcNow //rame rom yofiliyo xd
-        };
-
-        var result = await userManager.CreateAsync(adminUser, adminSettings.Password);
-        if (result.Succeeded)
-        {
-            await userManager.AddToRoleAsync(adminUser, adminSettings.Role);
-        }
-    }
-}
-
 app.UseAuthentication(); //are you one of us?
 app.UseAuthorization(); // what authority do you have?
-
 app.MapControllers(); //maps controller methods. Lets app listen to specific urls
 
 app.Run();//starts app ofc
