@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using homework.Controllers.SearchParams;
+using homework.Core.Entities;
 using homework.Shared.DTOs.Database;
 
 namespace homework.Controllers;
@@ -69,6 +70,51 @@ public class ClientsController: ControllerBase
             .ToList();
 
         return Ok(suggestions);
+    }
+    
+    [Authorize(Roles = "Admin")]
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] SearchParams.SearchParams searchParams)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId)) return Forbid();
+
+        var query = _db.Clients
+            .Include(c => c.Addresses)
+            .Include(c => c.Accounts)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchParams.search))
+            query = query.Where(c =>
+                c.FirstName.Contains(searchParams.search) ||
+                c.LastName.Contains(searchParams.search)  ||
+                c.Email.Contains(searchParams.search)     ||
+                c.PersonalId.Contains(searchParams.search));
+
+        query = searchParams.sortBy?.ToLower() switch
+        {
+            "firstname" => searchParams.sortDir == "desc" ? query.OrderByDescending(c => c.FirstName) : query.OrderBy(c => c.FirstName),
+            "lastname"  => searchParams.sortDir == "desc" ? query.OrderByDescending(c => c.LastName)  : query.OrderBy(c => c.LastName),
+            "email"     => searchParams.sortDir == "desc" ? query.OrderByDescending(c => c.Email)     : query.OrderBy(c => c.Email),
+            _           => query.OrderBy(c => c.Id)
+        };
+
+        var total = await query.CountAsync();
+        var results = await query
+            .AsNoTracking()
+            .Skip((searchParams.page - 1) * searchParams.pageSize)
+            .Take(searchParams.pageSize)
+            .ToListAsync();
+
+        _db.SearchHistories.Add(new SearchHistory
+        {
+            UserId       = userId,
+            QueryJson    = JsonSerializer.Serialize(searchParams),
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+
+        return Ok(new { total, results });
     }
 
     [Authorize(Roles = "Admin")]
