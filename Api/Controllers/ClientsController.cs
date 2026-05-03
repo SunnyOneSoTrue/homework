@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using System.Text.Json;
+using Client;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using homework.Controllers.SearchParams;
+using homework.Shared.DTOs.Database;
 
 namespace homework.Controllers;
 
@@ -17,10 +19,30 @@ public class ClientsController: ControllerBase
 
     [Authorize(Roles = "Admin")]
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] Client.Client client)
+    public async Task<IActionResult> Create([FromBody] CreateClientDTO request)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
+        var client = new Client.Client
+        {
+            FirstName    = request.FirstName,
+            LastName     = request.LastName,
+            Email        = request.Email,
+            PersonalId   = request.PersonalId,
+            ProfilePhoto = request.ProfilePhoto,
+            Addresses    = request.Addresses.Select(a => new Address
+            {
+                Country = a.Country,
+                City    = a.City,
+                Street  = a.Street,
+                ZipCode = a.ZipCode
+            }).ToList(),
+            Accounts = request.Accounts.Select(a => new Account
+            {
+                AccountNumber = a.AccountNumber
+            }).ToList()
+        };
+        
         _db.Clients.Add(client);
         await _db.SaveChangesAsync();
 
@@ -77,7 +99,7 @@ public class ClientsController: ControllerBase
 
     [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, [FromBody] Client.Client client)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateClientDTO request)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
@@ -87,10 +109,28 @@ public class ClientsController: ControllerBase
             .FirstOrDefaultAsync(c => c.Id == id);
         if (fetched is null) return NotFound();
 
+        fetched.FirstName    = request.FirstName;
+        fetched.LastName     = request.LastName;
+        fetched.Email        = request.Email;
+        fetched.ProfilePhoto = request.ProfilePhoto;
+        
         _db.Addresses.RemoveRange(fetched.Addresses);
         _db.Accounts.RemoveRange(fetched.Accounts);
-        fetched.Addresses = client.Addresses;
-        fetched.Accounts  = client.Accounts;
+        
+        fetched.Addresses = request.Addresses.Select(a => new Address
+        {
+            Country   = a.Country,
+            City      = a.City,
+            Street    = a.Street,
+            ZipCode   = a.ZipCode,
+            ClientId  = id
+        }).ToList();
+        
+        fetched.Accounts = request.Accounts.Select(a => new Account
+        {
+            AccountNumber = a.AccountNumber,
+            ClientId      = id
+        }).ToList();
 
         await _db.SaveChangesAsync();
         return NoContent();
@@ -102,7 +142,7 @@ public class ClientsController: ControllerBase
     {
         var client = await _db.Clients.FirstOrDefaultAsync(c => c.Id == id);
         _db.Remove(client);
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
         return Ok("Client deleted");
     }
 

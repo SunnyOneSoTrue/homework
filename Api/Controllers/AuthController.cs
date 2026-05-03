@@ -55,6 +55,7 @@ namespace homework.Controllers
                 new Claim(ClaimTypes.Email, user.Email ?? string.Empty), //email address
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()) // unique token id
             };
+            
             var roles = await _userManager.GetRolesAsync(user);
             foreach (var role in roles)
             {

@@ -51,9 +51,6 @@ namespace Infrastructure.Data
             account.Property(a => a.AccountNumber).IsRequired(); 
             account.HasOne(a => a.Client).WithMany(c => c.Accounts).HasForeignKey(a => a.ClientId).IsRequired().OnDelete(DeleteBehavior.Cascade);
         }
-
-
-
     }
 }
 
