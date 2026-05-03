@@ -17,7 +17,9 @@ builder.Configuration.SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("
 
 
 //initially adding the services that we will be using
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=banking.db"));
+var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "banking.db");
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
+// builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=banking.db"));
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("no JWT key"); //this gets the key that is used to stamp tokens
@@ -45,6 +47,9 @@ builder.Services.Configure<SeedAdminSettings.SeedAdminSettings>(builder.Configur
 builder.Services.AddAuthorization(); //adds the authorisation
 builder.Services.AddControllers(); // adds the controllers that we define
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -53,6 +58,8 @@ var app = builder.Build();
 app.UseAuthentication(); //are you one of us?
 app.UseAuthorization(); // what authority do you have?
 app.MapControllers(); //maps controller methods. Lets app listen to specific urls
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.Run();//starts app ofc
 

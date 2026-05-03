@@ -1,8 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Client;
-using homework.Core.Entities;
-using homework.Controllers.SearchParams;
 using homework.Shared.DTOs.Database;
 using homework.Infrastructure.UnitOfWork;
 using Microsoft.AspNetCore.Authorization;
